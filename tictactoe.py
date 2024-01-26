@@ -85,30 +85,21 @@ def winner(board):
     """
     Returns the winner of the game, if there is one.
     """
-    winner = None
+    for i in range(3):
+        # Check rows and columns
+        if all(board[i][j] == board[i][0] for j in range(3)):
+            return board[i][0]
+        if all(board[j][i] == board[0][i] for j in range(3)):
+            return board[0][i]
 
-    if ((board[0][0] == X and board[0][1] == X and board[0][2] == X)
-        or (board[1][0] == X and board[1][1] == X and board[1][2] == X)
-        or (board[2][0] == X and board[2][1] == X and board[2][2] == X)
+        # Check diagonals
+        if all(board[i][i] == board[0][0] for i in range(3)):
+            return board[0][0]
+        if all(board[i][2 - i] == board[0][2] for i in range(3)):
+            return board[0][2]
 
-        or (board[0][0] == X and board[1][0] == X and board[2][0] == X)
-        or (board[0][1] == X and board[1][1] == X and board[2][1] == X)
-        or (board[0][2] == X and board[1][2] == X and board[2][2] == X)
-
-        or board[0][0] == X and board[1][1] == X and board[2][2] == X):
-        winner = X
-    elif ((board[0][0] == O and board[0][1] == O and board[0][2] == O)
-        or (board[1][0] == O and board[1][1] == O and board[1][2] == O)
-        or (board[2][0] == O and board[2][1] == O and board[2][2] == O)
-
-        or (board[0][0] == O and board[1][0] == O and board[2][0] == O)
-        or (board[0][1] == O and board[1][1] == O and board[2][1] == O)
-        or (board[0][2] == O and board[1][2] == O and board[2][2] == O)
-
-        or board[0][0] == O and board[1][1] == O and board[2][2] == O):
-        winner = O
-
-    return winner
+    # IF there's no winner
+    return None
 
 def terminal(board):
     """
