@@ -5,6 +5,8 @@ Tic Tac Toe Player
 import math
 import copy
 
+from bigtree import Node
+
 X = "X"
 O = "O"
 EMPTY = None
@@ -81,22 +83,31 @@ def result(board, action):
 
     return new_board
 
+def board_match(board, player):
+    for i in range(3):
+        # Check rows and columns
+        if all(board[i][j] == player for j in range(3)):
+            return player
+        if all(board[j][i] == player for j in range(3)):
+            return player
+
+        # Check diagonals
+        if all(board[i][i] == player for i in range(3)):
+            return player
+        if all(board[i][2 - i] == player for i in range(3)):
+            return player
+
+    # IF there's no winner
+    return None
+
 def winner(board):
     """
     Returns the winner of the game, if there is one.
     """
-    for i in range(3):
-        # Check rows and columns
-        if all(board[i][j] == board[i][0] for j in range(3)):
-            return board[i][0]
-        if all(board[j][i] == board[0][i] for j in range(3)):
-            return board[0][i]
-
-        # Check diagonals
-        if all(board[i][i] == board[0][0] for i in range(3)):
-            return board[0][0]
-        if all(board[i][2 - i] == board[0][2] for i in range(3)):
-            return board[0][2]
+    if board_match(board, X) is not None:
+        return X
+    elif board_match(board, O) is not None:
+        return O
 
     # IF there's no winner
     return None
@@ -133,37 +144,42 @@ def utility(board):
 
     return result
 
-def min_player(board):
+def min_player(board, best_max_value, best_min_value, root):
     if terminal(board):
-        return None, utility(board)
+        return [None, utility(board)]
 
-    value = math.inf
-    optimal_action = None
+    index = 0
     for action in actions(board):
         result_action = result(board, action)
-        max_value = max_player(result_action)
+        index = index + 1
+        sub_node = Node(str(index) + O, board_state=result_action, result = 0, parent=root)
+        max_value = max_player(result_action, best_max_value, best_min_value, sub_node)
 
-        if max_value[1] <= value:
-            value = max_value[1]
-            optimal_action = action
+        if max_value[1] < best_min_value[1]:
+            sub_node.result =max_value[1]
+            best_min_value = [action, max_value[1]]
+        elif max_value[1] > best_min_value[1]:
+            return best_min_value
+    return best_min_value
 
-    return [optimal_action, value]
-
-def max_player(board):
+def max_player(board, best_max_value, best_min_value, root):
     if terminal(board):
-        return None, utility(board)
+        return [None, utility(board)]
 
-    value = -math.inf
-    optimal_action = None
+    index = 0
     for action in actions(board):
         result_action = result(board, action)
-        min_value = min_player(result_action)
+        index = index + 1
+        sub_node = Node(str(index) + X, board_state=result_action, result = 0, parent=root)
+        min_value = min_player(result_action, best_max_value, best_min_value, sub_node)
 
-        if min_value[1] >= value:
-            value = min_value[1]
-            optimal_action = action
+        if min_value[1] > best_max_value[1]:
+            sub_node.result = min_value[1]
+            best_max_value = [action, min_value[1]]
+        elif min_value[1] < best_max_value[1]:
+            return best_max_value
+    return best_max_value
 
-    return [optimal_action, value]
 
 def empty_board(board):
     for rows in board:
@@ -177,7 +193,10 @@ def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
+
     current_player = player(board)
+
+    root = Node(current_player, board_state=board, result=0)
 
     if terminal(board):
         return None
@@ -186,8 +205,10 @@ def minimax(board):
     else:
         optimal_move = None
         if current_player == X:
-            optimal_move = max_player(board)
+            optimal_move = max_player(board, [None, -math.inf], [None, math.inf], root)
         else:
-            optimal_move = min_player(board)
+            optimal_move = min_player(board, [None, -math.inf], [None, math.inf], root)
+        root.result = optimal_move[1]
+        # root.show(attr_list=["result"])
 
         return optimal_move[0]
