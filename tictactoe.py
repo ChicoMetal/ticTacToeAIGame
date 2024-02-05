@@ -144,40 +144,55 @@ def utility(board):
 
     return result
 
-def min_player(board, best_max_value, best_min_value, root):
+def min_player(board, best_max_value, best_min_value, cost, root):
+    cost = cost + 1
+
     if terminal(board):
-        return [None, utility(board)]
+        return [None, utility(board), cost]
 
     index = 0
     for action in actions(board):
         result_action = result(board, action)
-        index = index + 1
-        sub_node = Node(str(index) + O, board_state=result_action, result = 0, parent=root)
-        max_value = max_player(result_action, best_max_value, best_min_value, sub_node)
 
-        if max_value[1] < best_min_value[1]:
-            sub_node.result =max_value[1]
-            best_min_value = [action, max_value[1]]
-        elif max_value[1] > best_min_value[1]:
-            return best_min_value
+        index = index + 1
+        sub_node = Node(str(index) + O, board_result=result_action, result = None, cost=cost, selected=None, parent=root)
+
+        max_value = max_player(result_action, best_max_value, best_min_value, cost, sub_node)
+
+        sub_node.result = max_value[1]
+
+
+        if max_value[1] < best_min_value[1] or (max_value[1] == best_min_value[1] and max_value[2] < best_min_value[2]):
+            sub_node.selected = 1
+            best_min_value = [action, max_value[1], cost]
+        # elif max_value[1] > best_min_value[1] and max_value[2] > best_min_value[2]:
+            # print('--------------', action, max_value, best_min_value)
+            # break
     return best_min_value
 
-def max_player(board, best_max_value, best_min_value, root):
+def max_player(board, best_max_value, best_min_value, cost, root):
+    cost = cost + 1
+
     if terminal(board):
-        return [None, utility(board)]
+        return [None, utility(board), cost]
 
     index = 0
     for action in actions(board):
         result_action = result(board, action)
-        index = index + 1
-        sub_node = Node(str(index) + X, board_state=result_action, result = 0, parent=root)
-        min_value = min_player(result_action, best_max_value, best_min_value, sub_node)
 
-        if min_value[1] > best_max_value[1]:
-            sub_node.result = min_value[1]
-            best_max_value = [action, min_value[1]]
-        elif min_value[1] < best_max_value[1]:
-            return best_max_value
+        index = index + 1
+        sub_node = Node(str(index) + X, board_result=result_action, result = None, cost = cost, selected = None, parent=root)
+
+        min_value = min_player(result_action, best_max_value, best_min_value, cost, sub_node)
+
+        sub_node.result = min_value[1]
+
+        if min_value[1] > best_max_value[1] or (min_value[1] == best_max_value[1] and min_value[2] < best_max_value[2]):
+            sub_node.selected = 1
+            best_max_value = [action, min_value[1], cost]
+        # elif min_value[1] < best_max_value[1] and min_value[2] > best_max_value[2]:
+        #     print('--------------', action, min_value, best_min_value)
+        #     break
     return best_max_value
 
 
@@ -196,19 +211,21 @@ def minimax(board):
 
     current_player = player(board)
 
-    root = Node(current_player, board_state=board, result=0)
+    root = Node(current_player, board_result = None, result = None, cost = None, selected = None)
 
     if terminal(board):
         return None
-    elif empty_board(board):
-        return (1, 1)
     else:
         optimal_move = None
         if current_player == X:
-            optimal_move = max_player(board, [None, -math.inf], [None, math.inf], root)
+            optimal_move = max_player(board, [None, -math.inf], [None, math.inf], 0, root)
         else:
-            optimal_move = min_player(board, [None, -math.inf], [None, math.inf], root)
+            optimal_move = min_player(board, [None, -math.inf], [None, math.inf], 0, root)
+        root.board_result = result(board, optimal_move[0])
         root.result = optimal_move[1]
-        # root.show(attr_list=["result"])
+        root.cost = optimal_move[2]
+        root.selected = 1
+        # root.show(attr_list=["selected", "result", "cost", "board_result"])
+        # print('-------------------------')
 
         return optimal_move[0]
