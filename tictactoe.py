@@ -73,7 +73,7 @@ def result(board, action):
     Returns the board that results from making move (i, j) on the board.
     """
 
-    if action == None or not isinstance(action, tuple) or len(action) != 2:
+    if action == None or not isinstance(action, tuple) or len(action) != 2 or action[0] > 2 or action[1] > 2:
         raise ValueError("The action is not valid")
 
     current_player = player(board)
@@ -192,7 +192,6 @@ def max_player(board, best_max_value, best_min_value, current_player, heuristic_
         elif min_value[1] < best_max_value[1] and current_player == X:
             break
     return best_max_value
-
 
 def empty_board(board):
     for rows in board:
