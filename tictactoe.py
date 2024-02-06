@@ -144,55 +144,53 @@ def utility(board):
 
     return result
 
-def min_player(board, best_max_value, best_min_value, cost, root):
-    cost = cost + 1
+def min_player(board, best_max_value, best_min_value, current_player, heuristic_value, root):
+    heuristic_value = heuristic_value + 1
 
     if terminal(board):
-        return [None, utility(board), cost]
+        return [None, utility(board), heuristic_value]
 
     index = 0
     for action in actions(board):
         result_action = result(board, action)
 
         index = index + 1
-        sub_node = Node(str(index) + O, board_result=result_action, result = None, cost=cost, selected=None, parent=root)
+        sub_node = Node(str(index) + O, board_result=result_action, result = None, heuristic_value=heuristic_value, selected=None, parent=root)
 
-        max_value = max_player(result_action, best_max_value, best_min_value, cost, sub_node)
+        max_value = max_player(result_action, best_max_value, best_min_value, current_player, heuristic_value, sub_node)
 
         sub_node.result = max_value[1]
 
 
         if max_value[1] < best_min_value[1] or (max_value[1] == best_min_value[1] and max_value[2] < best_min_value[2]):
             sub_node.selected = 1
-            best_min_value = [action, max_value[1], cost]
-        # elif max_value[1] > best_min_value[1] and max_value[2] > best_min_value[2]:
-            # print('--------------', action, max_value, best_min_value)
-            # break
+            best_min_value = [action, max_value[1], max_value[2]]
+        elif max_value[1] > best_min_value[1] and current_player == O:
+            break
     return best_min_value
 
-def max_player(board, best_max_value, best_min_value, cost, root):
-    cost = cost + 1
+def max_player(board, best_max_value, best_min_value, current_player, heuristic_value, root):
+    heuristic_value = heuristic_value + 1
 
     if terminal(board):
-        return [None, utility(board), cost]
+        return [None, utility(board), heuristic_value]
 
     index = 0
     for action in actions(board):
         result_action = result(board, action)
 
         index = index + 1
-        sub_node = Node(str(index) + X, board_result=result_action, result = None, cost = cost, selected = None, parent=root)
+        sub_node = Node(str(index) + X, board_result=result_action, result = None, heuristic_value = heuristic_value, selected = None, parent=root)
 
-        min_value = min_player(result_action, best_max_value, best_min_value, cost, sub_node)
+        min_value = min_player(result_action, best_max_value, best_min_value, current_player, heuristic_value, sub_node)
 
         sub_node.result = min_value[1]
 
         if min_value[1] > best_max_value[1] or (min_value[1] == best_max_value[1] and min_value[2] < best_max_value[2]):
             sub_node.selected = 1
-            best_max_value = [action, min_value[1], cost]
-        # elif min_value[1] < best_max_value[1] and min_value[2] > best_max_value[2]:
-        #     print('--------------', action, min_value, best_min_value)
-        #     break
+            best_max_value = [action, min_value[1], min_value[2]]
+        elif min_value[1] < best_max_value[1] and current_player == X:
+            break
     return best_max_value
 
 
@@ -211,21 +209,21 @@ def minimax(board):
 
     current_player = player(board)
 
-    root = Node(current_player, board_result = None, result = None, cost = None, selected = None)
+    root = Node(current_player, board_result = None, result = None, heuristic_value = None, selected = None)
 
     if terminal(board):
         return None
     else:
         optimal_move = None
         if current_player == X:
-            optimal_move = max_player(board, [None, -math.inf], [None, math.inf], 0, root)
+            optimal_move = max_player(board, [None, -math.inf], [None, math.inf], X, 0, root)
         else:
-            optimal_move = min_player(board, [None, -math.inf], [None, math.inf], 0, root)
+            optimal_move = min_player(board, [None, -math.inf], [None, math.inf], O, 0, root)
         root.board_result = result(board, optimal_move[0])
         root.result = optimal_move[1]
-        root.cost = optimal_move[2]
+        root.heuristic_value = optimal_move[2]
         root.selected = 1
-        # root.show(attr_list=["selected", "result", "cost", "board_result"])
+        # root.show(attr_list=["selected", "result", "heuristic_value", "board_result"])
         # print('-------------------------')
 
         return optimal_move[0]
