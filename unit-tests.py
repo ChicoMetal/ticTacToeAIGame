@@ -57,6 +57,10 @@ class TestResult(unittest.TestCase):
         empty_board = initial_state()
         self.assertRaisesRegex(ValueError, "The action is not valid",
                                 result, empty_board, (3, 7))
+    def test_not_allowed_negative(self):
+        empty_board = initial_state()
+        self.assertRaisesRegex(ValueError, "The action is not valid",
+                                result, empty_board, (-1, 0))
 
 
 class TestWinner(unittest.TestCase):

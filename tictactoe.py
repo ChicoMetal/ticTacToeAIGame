@@ -68,12 +68,23 @@ def actions(board):
 
     return possible_actions
 
+def valid_action_in_board(board, action):
+    """Returns if the action is a valid move in a given board"""
+    return board[action[0]][action[1]] is None
+
 def result(board, action):
     """
     Returns the board that results from making move (i, j) on the board.
     """
 
-    if action == None or not isinstance(action, tuple) or len(action) != 2 or action[0] > 2 or action[1] > 2:
+    if (action is None
+        or board is None
+        or not isinstance(action, tuple)
+        or len(action) != 2
+        or action[0] > 2 or action[0] < 0 or not isinstance(action[0], int)
+        or action[1] > 2 or action[1] < 0 or not isinstance(action[1], int)
+        or not valid_action_in_board(board, action)):
+
         raise ValueError("The action is not valid")
 
     current_player = player(board)
