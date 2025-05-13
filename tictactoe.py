@@ -155,51 +155,64 @@ def utility(board):
 
     return result
 
-def min_player(board, best_max_value, best_min_value, node):
-    heuristic_value = node.heuristic_value + 1
+def min_player(board, best_max_value, node, root):
+    """Look the best move to score the minimum possible value"""
 
     if terminal(board):
         node.result = utility(board)
         return node
 
+    current_best_min_value = Node("0" + O, current_player=O, action=None, board_result= None, result= math.inf, selected= None, parent= None)
     for i, action in enumerate(actions(board)):
         board_result = result(board, action)
 
-        sub_node = Node(str(i)+O, current_player=X, action=action, board_result=board_result, result= None, heuristic_value= heuristic_value, selected= None, parent= node)
+        sub_node = Node(str(i)+O, current_player=O, action=action, board_result=board_result, result= None, selected= None, parent= node)
 
-        max_node = max_player(board_result, best_max_value, best_min_value, sub_node)
+        max_node = max_player(board_result, current_best_min_value, sub_node, root)
 
         sub_node.result = max_node.result
 
-        if max_node.result < best_min_value.result or (max_node.result == best_min_value.result and max_node.heuristic_value < best_min_value.heuristic_value):
+        if (max_node.result < current_best_min_value.result
+            or (max_node.result == current_best_min_value.result and max_node.depth < current_best_min_value.depth)):
             sub_node.selected = 1
-            best_min_value = sub_node
-        # elif max_node.result > best_min_value.result:
-        #     break
-    return best_min_value
+            current_best_min_value = sub_node
 
-def max_player(board, best_max_value, best_min_value, node):
-    heuristic_value = node.heuristic_value + 1
+        elif (root.current_player == X
+                and best_max_value is not None
+                and best_max_value.result > -math.inf
+                and best_max_value.result > sub_node.result):
+            return sub_node
+
+    return current_best_min_value
+
+def max_player(board, best_min_value, node, root):
+    """Look the best move to score the maximum possible value"""
 
     if terminal(board):
         node.result = utility(board)
         return node
-
+    current_best_max_value = Node("0" + X, current_player=X, action=None, board_result= None, result= -math.inf, selected= None, parent= None)
     for i, action in enumerate(actions(board)):
         board_result = result(board, action)
 
-        sub_node = Node(str(i)+X, current_player=X, action=action, board_result=board_result, result= None, heuristic_value= heuristic_value, selected= None, parent= node)
+        sub_node = Node(str(i)+X, current_player=X, action=action, board_result=board_result, result= None, selected= None, parent= node)
 
-        min_node = min_player(board_result, best_max_value, best_min_value, sub_node)
+        min_node = min_player(board_result, current_best_max_value, sub_node, root)
 
         sub_node.result = min_node.result
 
-        if min_node.result > best_max_value.result or (min_node.result == best_max_value.result and min_node.heuristic_value < best_max_value.heuristic_value):
+        if (min_node.result > current_best_max_value.result
+            or (min_node.result == current_best_max_value.result and min_node.depth < current_best_max_value.depth)):
             sub_node.selected = 1
-            best_max_value = sub_node
-        # elif min_node.result < best_max_value.result:
-        #     break
-    return best_max_value
+            current_best_max_value = sub_node
+
+        elif (root.current_player == O
+                and best_min_value is not None
+                and best_min_value.result < math.inf
+                and best_min_value.result < sub_node.result):
+            return sub_node
+
+    return current_best_max_value
 
 def empty_board(board):
     for rows in board:
@@ -213,21 +226,18 @@ def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
-    # print("Initial board: ", board)
-
     current_player = player(board)
 
-    root = Node(current_player, action=None, board_result= None, result= None, heuristic_value= 0, selected= None, parent= None)
+    root = Node(current_player, current_player=current_player, action=None, board_result= None, result= None, selected= None, parent= None)
 
     if terminal(board):
         return None
     else:
         optimal_move = None
-        init_best_max = Node("0" + X, current_player=X, action=None, board_result= None, result= -math.inf, heuristic_value= 0, selected= None, parent= None)
-        init_best_min = Node("0" + O, current_player=O, action=None, board_result= None, result= math.inf, heuristic_value= 0, selected= None, parent= None)
-
         if current_player == X:
-            optimal_move = max_player(board, init_best_max, init_best_min, root)
+            init_best_min = None
+            optimal_move = max_player(board, init_best_min, root, root)
         else:
-            optimal_move = min_player(board, init_best_max, init_best_min, root)
+            init_best_max = None
+            optimal_move = min_player(board, init_best_max, root, root)
         return optimal_move.action

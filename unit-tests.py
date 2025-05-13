@@ -138,9 +138,9 @@ class TestUtility(unittest.TestCase):
 
 
 class TestMinMax(unittest.TestCase):
-    # def test_tictactoe_is_a_draw(self):
-    #     board = initial_state()
-    #     self.assertEqual(0, score(board))
+    def test_tictactoe_is_a_draw(self):
+        board = initial_state()
+        self.assertEqual(0, utility(board))
 
     def test_almost_finished(self):
         board = [[_, X, O],
@@ -180,15 +180,16 @@ class TestMinMax(unittest.TestCase):
         board = [[_, X, _],
                     [_, _, O],
                     [_, _, _]]
-        self.assertEqual((0, 2), minimax(board))
-        # self.assertEqual(1, score(board))
+        self.assertEqual((1, 1), minimax(board))
+        self.assertEqual(0, utility(board))
 
     def test_full_board(self):
-        full_board = [[X, O, X],
-                        [O, O, X],
-                        [X, X, O]]
-        self.assertIsNone(minimax(full_board))
-        # self.assertEqual(0, score(full_board))
+        full_board = ([[None, None, None],
+                       [X,    O,    O],
+                       [None, X,    None]])
+        result = minimax(full_board)
+        self.assertIsNotNone(result)
+        self.assertEqual((2,0), result)
 
 
 if __name__ == '__main__':
