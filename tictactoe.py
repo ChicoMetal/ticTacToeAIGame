@@ -133,11 +133,11 @@ def terminal(board):
             if cell == EMPTY:
                 terminal_board = False
 
-    winner_board = False
+    winner_board = None
     if not terminal_board:
         winner_board = winner(board)
 
-    return terminal_board or winner_board
+    return terminal_board or bool(winner_board)
 
 def utility(board):
     """
@@ -155,53 +155,50 @@ def utility(board):
 
     return result
 
-def min_player(board, best_max_value, best_min_value, current_player, heuristic_value, root):
-    heuristic_value = heuristic_value + 1
+def min_player(board, best_max_value, best_min_value, node):
+    heuristic_value = node.heuristic_value + 1
 
     if terminal(board):
-        return [None, utility(board), heuristic_value]
+        node.result = utility(board)
+        return node
 
-    index = 0
-    for action in actions(board):
-        result_action = result(board, action)
+    for i, action in enumerate(actions(board)):
+        board_result = result(board, action)
 
-        index = index + 1
-        sub_node = Node(str(index) + O, board_result=result_action, result = None, heuristic_value=heuristic_value, selected=None, parent=root)
+        sub_node = Node(str(i)+O, current_player=X, action=action, board_result=board_result, result= None, heuristic_value= heuristic_value, selected= None, parent= node)
 
-        max_value = max_player(result_action, best_max_value, best_min_value, current_player, heuristic_value, sub_node)
+        max_node = max_player(board_result, best_max_value, best_min_value, sub_node)
 
-        sub_node.result = max_value[1]
+        sub_node.result = max_node.result
 
-
-        if max_value[1] < best_min_value[1] or (max_value[1] == best_min_value[1] and max_value[2] < best_min_value[2]):
+        if max_node.result < best_min_value.result or (max_node.result == best_min_value.result and max_node.heuristic_value < best_min_value.heuristic_value):
             sub_node.selected = 1
-            best_min_value = [action, max_value[1], max_value[2]]
-        elif max_value[1] > best_min_value[1] and current_player == O:
-            break
+            best_min_value = sub_node
+        # elif max_node.result > best_min_value.result:
+        #     break
     return best_min_value
 
-def max_player(board, best_max_value, best_min_value, current_player, heuristic_value, root):
-    heuristic_value = heuristic_value + 1
+def max_player(board, best_max_value, best_min_value, node):
+    heuristic_value = node.heuristic_value + 1
 
     if terminal(board):
-        return [None, utility(board), heuristic_value]
+        node.result = utility(board)
+        return node
 
-    index = 0
-    for action in actions(board):
-        result_action = result(board, action)
+    for i, action in enumerate(actions(board)):
+        board_result = result(board, action)
 
-        index = index + 1
-        sub_node = Node(str(index) + X, board_result=result_action, result = None, heuristic_value = heuristic_value, selected = None, parent=root)
+        sub_node = Node(str(i)+X, current_player=X, action=action, board_result=board_result, result= None, heuristic_value= heuristic_value, selected= None, parent= node)
 
-        min_value = min_player(result_action, best_max_value, best_min_value, current_player, heuristic_value, sub_node)
+        min_node = min_player(board_result, best_max_value, best_min_value, sub_node)
 
-        sub_node.result = min_value[1]
+        sub_node.result = min_node.result
 
-        if min_value[1] > best_max_value[1] or (min_value[1] == best_max_value[1] and min_value[2] < best_max_value[2]):
+        if min_node.result > best_max_value.result or (min_node.result == best_max_value.result and min_node.heuristic_value < best_max_value.heuristic_value):
             sub_node.selected = 1
-            best_max_value = [action, min_value[1], min_value[2]]
-        elif min_value[1] < best_max_value[1] and current_player == X:
-            break
+            best_max_value = sub_node
+        # elif min_node.result < best_max_value.result:
+        #     break
     return best_max_value
 
 def empty_board(board):
@@ -216,24 +213,21 @@ def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
+    # print("Initial board: ", board)
 
     current_player = player(board)
 
-    root = Node(current_player, board_result = None, result = None, heuristic_value = None, selected = None)
+    root = Node(current_player, action=None, board_result= None, result= None, heuristic_value= 0, selected= None, parent= None)
 
     if terminal(board):
         return None
     else:
         optimal_move = None
-        if current_player == X:
-            optimal_move = max_player(board, [None, -math.inf], [None, math.inf], X, 0, root)
-        else:
-            optimal_move = min_player(board, [None, -math.inf], [None, math.inf], O, 0, root)
-        root.board_result = result(board, optimal_move[0])
-        root.result = optimal_move[1]
-        root.heuristic_value = optimal_move[2]
-        root.selected = 1
-        # root.show(attr_list=["selected", "result", "heuristic_value", "board_result"])
-        # print('-------------------------')
+        init_best_max = Node("0" + X, current_player=X, action=None, board_result= None, result= -math.inf, heuristic_value= 0, selected= None, parent= None)
+        init_best_min = Node("0" + O, current_player=O, action=None, board_result= None, result= math.inf, heuristic_value= 0, selected= None, parent= None)
 
-        return optimal_move[0]
+        if current_player == X:
+            optimal_move = max_player(board, init_best_max, init_best_min, root)
+        else:
+            optimal_move = min_player(board, init_best_max, init_best_min, root)
+        return optimal_move.action
