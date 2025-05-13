@@ -5,12 +5,75 @@ Tic Tac Toe Player
 import math
 import copy
 
-from bigtree import Node
-
+result_key = "result"
 X = "X"
 O = "O"
 EMPTY = None
 
+class Node:
+    """Node custome class"""
+    def __init__(self, name, parent=None, **kwargs):
+        self.name = name
+        self.parent = parent
+        self.children = []
+        self.__dict__.update(kwargs)
+
+        if parent is not None:
+            parent.add_child(self)
+
+    def add_child(self, node):
+        self.children.append(node)
+        node.parent = self
+
+    @property
+    def depth(self):
+        d = 0
+        node = self.parent
+        while node is not None:
+            d += 1
+            node = node.parent
+        return d
+
+    @property
+    def path(self):
+        node = self
+        parts = []
+        while node:
+            parts.append(node.name)
+            node = node.parent
+        return "/".join(reversed(parts))
+
+    def get_custom_properties(self):
+        """Get custom properties"""
+        # Exclude internal attributes
+        built_ins = {'name', 'parent', 'children'}
+        return {
+            k: v for k, v in self.__dict__.items()
+            if k not in built_ins and not k.startswith('_')
+        }
+
+    def get_custom_property(self, custom_property):
+        """Get the value of a specific custom property"""
+        return self.get_custom_properties()[custom_property]
+
+    def set_custom_property(self, key: str, value):
+        """Replace the value of a custom property"""
+        if key in {"name", "parent", "children"}:
+            raise KeyError(f"Cannot overwrite internal attribute '{key}'")
+        self.__dict__[key] = value
+
+    def __repr__(self):
+        return f"Node({self.name!r}, depth={self.depth})"
+
+    def __str__(self):
+        return self._display()
+
+    def _display(self, level=0):
+        indent = "  " * level
+        result = f"{indent}- {self.name} (depth: {self.depth})\n"
+        for child in self.children:
+            result += child._display(level + 1)
+        return result
 
 def initial_state():
     """
@@ -159,7 +222,7 @@ def min_player(board, best_max_value, node, root):
     """Look the best move to score the minimum possible value"""
 
     if terminal(board):
-        node.result = utility(board)
+        node.set_custom_property(result_key, utility(board))
         return node
 
     current_best_min_value = Node("0" + O, current_player=O, action=None, board_result= None, result= math.inf, selected= None, parent= None)
@@ -170,17 +233,17 @@ def min_player(board, best_max_value, node, root):
 
         max_node = max_player(board_result, current_best_min_value, sub_node, root)
 
-        sub_node.result = max_node.result
+        sub_node.set_custom_property(result_key, max_node.get_custom_property(result_key))
 
-        if (max_node.result < current_best_min_value.result
-            or (max_node.result == current_best_min_value.result and max_node.depth < current_best_min_value.depth)):
-            sub_node.selected = 1
+        if (max_node.get_custom_property(result_key) < current_best_min_value.get_custom_property(result_key)
+            or (max_node.get_custom_property(result_key) == current_best_min_value.get_custom_property(result_key) and max_node.depth < current_best_min_value.depth)):
+            sub_node.set_custom_property("selected", 1)
             current_best_min_value = sub_node
 
         elif (root.current_player == X
                 and best_max_value is not None
-                and best_max_value.result > -math.inf
-                and best_max_value.result > sub_node.result):
+                and best_max_value.get_custom_property(result_key) > -math.inf
+                and best_max_value.get_custom_property(result_key) > sub_node.get_custom_property(result_key)):
             return sub_node
 
     return current_best_min_value
@@ -189,7 +252,7 @@ def max_player(board, best_min_value, node, root):
     """Look the best move to score the maximum possible value"""
 
     if terminal(board):
-        node.result = utility(board)
+        node.set_custom_property(result_key, utility(board))
         return node
     current_best_max_value = Node("0" + X, current_player=X, action=None, board_result= None, result= -math.inf, selected= None, parent= None)
     for i, action in enumerate(actions(board)):
@@ -199,22 +262,23 @@ def max_player(board, best_min_value, node, root):
 
         min_node = min_player(board_result, current_best_max_value, sub_node, root)
 
-        sub_node.result = min_node.result
+        sub_node.set_custom_property(result_key, min_node.get_custom_property(result_key))
 
-        if (min_node.result > current_best_max_value.result
-            or (min_node.result == current_best_max_value.result and min_node.depth < current_best_max_value.depth)):
-            sub_node.selected = 1
+        if (min_node.get_custom_property(result_key) > current_best_max_value.get_custom_property(result_key)
+            or (min_node.get_custom_property(result_key) == current_best_max_value.get_custom_property(result_key) and min_node.depth < current_best_max_value.depth)):
+            sub_node.set_custom_property("selected", 1)
             current_best_max_value = sub_node
 
         elif (root.current_player == O
                 and best_min_value is not None
-                and best_min_value.result < math.inf
-                and best_min_value.result < sub_node.result):
+                and best_min_value.get_custom_property(result_key) < math.inf
+                and best_min_value.get_custom_property(result_key) < sub_node.get_custom_property(result_key)):
             return sub_node
 
     return current_best_max_value
 
 def empty_board(board):
+    """Verify if the board is completely empty"""
     for rows in board:
         for cell in rows:
             if cell != EMPTY:
@@ -240,4 +304,4 @@ def minimax(board):
         else:
             init_best_max = None
             optimal_move = min_player(board, init_best_max, root, root)
-        return optimal_move.action
+        return optimal_move.get_custom_property("action")
