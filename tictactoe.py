@@ -16,6 +16,10 @@ class Node:
         self.name = name
         self.parent = parent
         self.children = []
+        if parent is not None:
+            self.heuristic_value_prop = parent.heuristic_value + 1
+        else:
+            self.heuristic_value_prop = 0
         self.__dict__.update(kwargs)
 
         if parent is not None:
@@ -43,6 +47,21 @@ class Node:
             node = node.parent
         return "/".join(reversed(parts))
 
+    @property
+    def result(self):
+        """set current_best_value"""
+        return self.__dict__["result"]
+
+
+    def set_result(self, result):
+        """get current_best_value"""
+        self.__dict__["result"] = result
+
+    @property
+    def heuristic_value(self):
+        """set current_best_value"""
+        return self.heuristic_value_prop
+
     def get_custom_properties(self):
         """Get custom properties"""
         # Exclude internal attributes
@@ -51,6 +70,14 @@ class Node:
             k: v for k, v in self.__dict__.items()
             if k not in built_ins and not k.startswith('_')
         }
+
+    def get_parent(self):
+        """Return the parent node if it exists, otherwise None."""
+        return self.parent
+
+    def get_children(self):
+        """Return the children nodes"""
+        return self.children
 
     def get_custom_property(self, custom_property):
         """Get the value of a specific custom property"""
@@ -218,62 +245,63 @@ def utility(board):
 
     return result
 
-def min_player(board, best_max_value, node, root):
-    """Look the best move to score the minimum possible value"""
+def min_player(board, node, alpha, beta):
+    """Look the best move to score the minimum possible value with alpha-beta pruning"""
 
     if terminal(board):
-        node.set_custom_property(result_key, utility(board))
+        node.set_result(utility(board))
         return node
 
-    current_best_min_value = Node("0" + O, current_player=O, action=None, board_result= None, result= math.inf, selected= None, parent= None)
+    current_best_min_value = node
+
     for i, action in enumerate(actions(board)):
         board_result = result(board, action)
 
-        sub_node = Node(str(i)+O, current_player=O, action=action, board_result=board_result, result= None, selected= None, parent= node)
+        sub_node = Node(str(i)+O, current_player=O, action=action, board_result=board_result, result=None, selected=None, parent=node)
 
-        max_node = max_player(board_result, current_best_min_value, sub_node, root)
+        max_node = max_player(board_result, sub_node, alpha, beta)
 
-        sub_node.set_custom_property(result_key, max_node.get_custom_property(result_key))
+        sub_node.set_result(max_node.result)
 
-        if (max_node.get_custom_property(result_key) < current_best_min_value.get_custom_property(result_key)
-            or (max_node.get_custom_property(result_key) == current_best_min_value.get_custom_property(result_key) and max_node.depth < current_best_min_value.depth)):
+        if (current_best_min_value.result is None or max_node.result < current_best_min_value.result
+            # or (max_node.result == current_best_min_value.result and max_node.heuristic_value < current_best_min_value.heuristic_value)
+        ):
             sub_node.set_custom_property("selected", 1)
             current_best_min_value = sub_node
 
-        elif (root.current_player == X
-                and best_max_value is not None
-                and best_max_value.get_custom_property(result_key) > -math.inf
-                and best_max_value.get_custom_property(result_key) > sub_node.get_custom_property(result_key)):
-            return sub_node
+            beta = min(beta, current_best_min_value.result)
+            if beta <= alpha:
+                break  # Alpha-beta pruning
 
     return current_best_min_value
 
-def max_player(board, best_min_value, node, root):
-    """Look the best move to score the maximum possible value"""
+def max_player(board, node, alpha, beta):
+    """Look the best move to score the maximum possible value with alpha-beta pruning"""
 
     if terminal(board):
-        node.set_custom_property(result_key, utility(board))
+        node.set_result(utility(board))
         return node
-    current_best_max_value = Node("0" + X, current_player=X, action=None, board_result= None, result= -math.inf, selected= None, parent= None)
+
+    current_best_max_value = node
+
     for i, action in enumerate(actions(board)):
         board_result = result(board, action)
 
-        sub_node = Node(str(i)+X, current_player=X, action=action, board_result=board_result, result= None, selected= None, parent= node)
+        sub_node = Node(str(i)+X, current_player=X, action=action, board_result=board_result, result=None, selected=None, parent=node)
 
-        min_node = min_player(board_result, current_best_max_value, sub_node, root)
+        min_node = min_player(board_result, sub_node, alpha, beta)
 
-        sub_node.set_custom_property(result_key, min_node.get_custom_property(result_key))
+        sub_node.set_result(min_node.result)
 
-        if (min_node.get_custom_property(result_key) > current_best_max_value.get_custom_property(result_key)
-            or (min_node.get_custom_property(result_key) == current_best_max_value.get_custom_property(result_key) and min_node.depth < current_best_max_value.depth)):
+        if (current_best_max_value.result is None or min_node.result > current_best_max_value.result
+            # or (min_node.result == current_best_max_value.result and min_node.heuristic_value < current_best_max_value.heuristic_value)
+        ):
             sub_node.set_custom_property("selected", 1)
             current_best_max_value = sub_node
 
-        elif (root.current_player == O
-                and best_min_value is not None
-                and best_min_value.get_custom_property(result_key) < math.inf
-                and best_min_value.get_custom_property(result_key) < sub_node.get_custom_property(result_key)):
-            return sub_node
+            alpha = max(alpha, current_best_max_value.result)
+            if beta <= alpha:
+                break  # Alpha-beta pruning
 
     return current_best_max_value
 
@@ -292,16 +320,14 @@ def minimax(board):
     """
     current_player = player(board)
 
-    root = Node(current_player, current_player=current_player, action=None, board_result= None, result= None, selected= None, parent= None)
-
     if terminal(board):
         return None
     else:
         optimal_move = None
         if current_player == X:
-            init_best_min = None
-            optimal_move = max_player(board, init_best_min, root, root)
+            root = Node(current_player, current_player=X, action=None, board_result=None, result=-math.inf, selected=None, parent=None)
+            optimal_move = max_player(board, root, -math.inf, math.inf)
         else:
-            init_best_max = None
-            optimal_move = min_player(board, init_best_max, root, root)
+            root = Node(current_player, current_player=O, action=None, board_result=None, result=math.inf, selected=None, parent=None)
+            optimal_move = min_player(board, root, -math.inf, math.inf)
         return optimal_move.get_custom_property("action")
