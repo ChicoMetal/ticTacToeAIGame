@@ -16,10 +16,6 @@ class Node:
         self.name = name
         self.parent = parent
         self.children = []
-        if parent is not None:
-            self.heuristic_value_prop = parent.heuristic_value + 1
-        else:
-            self.heuristic_value_prop = 0
         self.selected_children_prop = None
         self.__dict__.update(kwargs)
 
@@ -63,6 +59,10 @@ class Node:
         """set current_best_value"""
         return self.__dict__["selected_depth"]
 
+    def set_selected_depth(self):
+        """set current_best_value"""
+        self.__dict__["selected_depth"] = self.depth
+
     @property
     def get_selected(self):
         """set current_best_value"""
@@ -72,19 +72,6 @@ class Node:
         self.__dict__["selected"] = selected
         self.__dict__["selected_depth"] = depth
 
-    @property
-    def selected_children(self):
-        """set current_best_value"""
-        return self.selected_children_prop
-
-    def set_selected_children(self, children):
-        """get current_best_value"""
-        self.selected_children_prop = children
-
-    @property
-    def heuristic_value(self):
-        """set current_best_value"""
-        return self.heuristic_value_prop
 
     def get_custom_properties(self):
         """Get custom properties"""
@@ -102,20 +89,6 @@ class Node:
     def get_children(self):
         """Return the children nodes"""
         return self.children
-
-    def get_deepest_selected_children_depth_recursive(self, node):
-        """get_deepest_selected_children_depth_recursive"""
-        if len(node.children) == 0:
-            return node.depth
-
-        for child in node.children:
-            if child.get_custom_property("selected") == 1:
-                return self.get_deepest_selected_children_depth_recursive(child)
-        return None
-
-    def get_deepest_selected_children_depth(self):
-        """get_deepest_selected_children_depth"""
-        return self.get_deepest_selected_children_depth_recursive(self)
 
 
     def get_custom_property(self, custom_property):
@@ -287,70 +260,55 @@ def utility(board):
 def min_player(board, node, alpha, beta):
     """Look the best move to score the minimum possible value with alpha-beta pruning"""
 
-    if terminal(board):
-        node.set_result(utility(board))
-        return node
+    def check_better(min_node, current_best_max_value):
+        return min_node.result < current_best_max_value.result
 
-    current_best_min_value = node
+    def pruning(alpha, beta, current_best_result):
+        beta = min(beta, current_best_result)
+        return alpha, beta
 
-    for i, action in enumerate(actions(board)):
-        board_result = result(board, action)
+    return play(board, node, alpha, beta, pruning, O, max_player, check_better)
 
-        sub_node = Node(str(i)+O, current_player=O, action=action, board_result=board_result, result=None, selected=None, parent=node)
-
-        max_node = max_player(board_result, sub_node, alpha, beta)
-
-        sub_node.set_result(max_node.result)
-
-        if (current_best_min_value.result is None or max_node.result < current_best_min_value.result
-            or (max_node.result == current_best_min_value.result and max_node.get_deepest_selected_children_depth() < current_best_min_value.get_deepest_selected_children_depth())
-            # or (max_node.result == current_best_min_value.result and max_node.heuristic_value < current_best_min_value.heuristic_value)
-        ):
-            current_best_min_value.set_custom_property("selected", None)
-            sub_node.set_custom_property("selected", 1)
-            sub_node.set_selected_children(max_node)
-            current_best_min_value = sub_node
-            print("--------------- ", max_node.heuristic_value, current_best_min_value.heuristic_value)
-
-            beta = min(beta, current_best_min_value.result)
-            if beta <= alpha:
-                break  # Alpha-beta pruning
-
-    return current_best_min_value
 
 def max_player(board, node, alpha, beta):
     """Look the best move to score the maximum possible value with alpha-beta pruning"""
+    def check_better(min_node, current_best_max_value):
+        return min_node.result > current_best_max_value.result
+    def pruning(alpha, _, current_best_result):
+        alpha = max(alpha, current_best_result)
+        return alpha, beta
 
+    return play(board, node, alpha, beta, pruning, X, min_player, check_better)
+
+def play(board, node, alpha, beta, beta_func, current_player, play_player, check_better):
+    """Execute play action"""
     if terminal(board):
         node.set_result(utility(board))
+        node.set_selected_depth()
         return node
 
-    current_best_max_value = node
+    current_best = node
 
     for i, action in enumerate(actions(board)):
         board_result = result(board, action)
 
-        sub_node = Node(str(i)+X, current_player=X, action=action, board_result=board_result, result=None, selected=None, parent=node)
+        sub_node = Node(str(i) + current_player, current_player=current_player, action=action, board_result=board_result, result=None, selected=None, parent=node)
 
-        min_node = min_player(board_result, sub_node, alpha, beta)
+        rival_node = play_player(board_result, sub_node, alpha, beta)
 
-        sub_node.set_result(min_node.result)
+        sub_node.set_result(rival_node.result)
 
-        if (current_best_max_value.result is None or min_node.result > current_best_max_value.result
-            or (min_node.result == current_best_max_value.result and min_node.get_deepest_selected_children_depth() < current_best_max_value.get_deepest_selected_children_depth())
-            # or (min_node.result == current_best_max_value.result and min_node.heuristic_value < current_best_max_value.heuristic_value)
+        if (current_best.result is None or check_better(rival_node, current_best)
+            or (rival_node.result == current_best.result and rival_node.get_selected_depth < current_best.get_selected_depth)
         ):
-            current_best_max_value.set_custom_property("selected", None)
-            sub_node.set_custom_property("selected", 1)
-            sub_node.set_selected_children(min_node)
-            current_best_max_value = sub_node
-            print("--------------- ", min_node.heuristic_value, current_best_max_value.heuristic_value)
-
-            alpha = max(alpha, current_best_max_value.result)
+            current_best.set_selected(None, None)
+            sub_node.set_selected(1, rival_node.get_selected_depth)
+            current_best = sub_node
+            alpha, beta = beta_func(alpha, beta, current_best.result)
             if beta <= alpha:
                 break  # Alpha-beta pruning
 
-    return current_best_max_value
+    return current_best
 
 def empty_board(board):
     """Verify if the board is completely empty"""

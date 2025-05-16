@@ -154,20 +154,20 @@ class TestMinMax(unittest.TestCase):
                     [_, _, _],
                     [O, _, _]]
         self.assertEqual((1, 1), minimax(board))
-        # self.assertEqual(1, score(board))
+        self.assertEqual(0, utility(board))
 
     def test_still_a_draw(self):
-        board = [[X, _, _],
-                    [_, _, _],
-                    [_, _, _]]
+        board = [   [X,     None, None],
+                    [None,  None, None],
+                    [None,  None, None]]
         self.assertEqual((1, 1), minimax(board))
         # self.assertEqual(0, score(board))
 
-    # def test_bad_start(self):
-    #     board = [[X, _, O],
-    #                 [_, _, _],
-    #                 [_, _, _]]
-    #     self.assertEqual(1, score(board))
+    def test_bad_start(self):
+        board = [[X, _, O],
+                    [_, _, _],
+                    [_, _, _]]
+        self.assertEqual(0, utility(board))
 
     def test_fork(self):
         board = [[_, X, O],
@@ -190,6 +190,14 @@ class TestMinMax(unittest.TestCase):
         result = minimax(full_board)
         self.assertIsNotNone(result)
         self.assertEqual((2,0), result)
+
+    def test_emoty_board(self):
+        full_board = ([[None, None, None],
+                       [None, None, None],
+                       [None, None, None]])
+        result = minimax(full_board)
+        self.assertIsNotNone(result)
+        self.assertEqual((0,1), result)
 
 
 if __name__ == '__main__':

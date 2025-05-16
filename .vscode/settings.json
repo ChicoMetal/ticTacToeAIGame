@@ -1,5 +1,5 @@
 {
-    "python.defaultInterpreterPath": "/Users/carlosandresguzmanarreola/opt/anaconda3/envs/cs50/bin/python",
+    "python.defaultInterpreterPath": "/Users/carlosandresguzmanarreola/opt/anaconda3/envs/general/bin/python",
     "python.analysis.extraPaths": [
         "${workspaceFolder}"
     ],
