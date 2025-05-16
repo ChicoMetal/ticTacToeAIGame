@@ -20,6 +20,7 @@ class Node:
             self.heuristic_value_prop = parent.heuristic_value + 1
         else:
             self.heuristic_value_prop = 0
+        self.selected_children_prop = None
         self.__dict__.update(kwargs)
 
         if parent is not None:
@@ -58,6 +59,29 @@ class Node:
         self.__dict__["result"] = result
 
     @property
+    def get_selected_depth(self):
+        """set current_best_value"""
+        return self.__dict__["selected_depth"]
+
+    @property
+    def get_selected(self):
+        """set current_best_value"""
+        return self.__dict__["selected"]
+
+    def set_selected(self, selected, depth):
+        self.__dict__["selected"] = selected
+        self.__dict__["selected_depth"] = depth
+
+    @property
+    def selected_children(self):
+        """set current_best_value"""
+        return self.selected_children_prop
+
+    def set_selected_children(self, children):
+        """get current_best_value"""
+        self.selected_children_prop = children
+
+    @property
     def heuristic_value(self):
         """set current_best_value"""
         return self.heuristic_value_prop
@@ -78,6 +102,21 @@ class Node:
     def get_children(self):
         """Return the children nodes"""
         return self.children
+
+    def get_deepest_selected_children_depth_recursive(self, node):
+        """get_deepest_selected_children_depth_recursive"""
+        if len(node.children) == 0:
+            return node.depth
+
+        for child in node.children:
+            if child.get_custom_property("selected") == 1:
+                return self.get_deepest_selected_children_depth_recursive(child)
+        return None
+
+    def get_deepest_selected_children_depth(self):
+        """get_deepest_selected_children_depth"""
+        return self.get_deepest_selected_children_depth_recursive(self)
+
 
     def get_custom_property(self, custom_property):
         """Get the value of a specific custom property"""
@@ -264,10 +303,14 @@ def min_player(board, node, alpha, beta):
         sub_node.set_result(max_node.result)
 
         if (current_best_min_value.result is None or max_node.result < current_best_min_value.result
+            or (max_node.result == current_best_min_value.result and max_node.get_deepest_selected_children_depth() < current_best_min_value.get_deepest_selected_children_depth())
             # or (max_node.result == current_best_min_value.result and max_node.heuristic_value < current_best_min_value.heuristic_value)
         ):
+            current_best_min_value.set_custom_property("selected", None)
             sub_node.set_custom_property("selected", 1)
+            sub_node.set_selected_children(max_node)
             current_best_min_value = sub_node
+            print("--------------- ", max_node.heuristic_value, current_best_min_value.heuristic_value)
 
             beta = min(beta, current_best_min_value.result)
             if beta <= alpha:
@@ -294,10 +337,14 @@ def max_player(board, node, alpha, beta):
         sub_node.set_result(min_node.result)
 
         if (current_best_max_value.result is None or min_node.result > current_best_max_value.result
+            or (min_node.result == current_best_max_value.result and min_node.get_deepest_selected_children_depth() < current_best_max_value.get_deepest_selected_children_depth())
             # or (min_node.result == current_best_max_value.result and min_node.heuristic_value < current_best_max_value.heuristic_value)
         ):
+            current_best_max_value.set_custom_property("selected", None)
             sub_node.set_custom_property("selected", 1)
+            sub_node.set_selected_children(min_node)
             current_best_max_value = sub_node
+            print("--------------- ", min_node.heuristic_value, current_best_max_value.heuristic_value)
 
             alpha = max(alpha, current_best_max_value.result)
             if beta <= alpha:
